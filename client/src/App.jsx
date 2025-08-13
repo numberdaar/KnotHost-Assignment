@@ -1,6 +1,7 @@
+// App pages, router, and responsive navigation
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom'
-import { login as apiLogin, signUp as apiSignUp, forgot as apiForgot } from './api'
+import { login as apiLogin, signUp as apiSignUp, forgot as apiForgot, sendContact } from './api'
 import { useAuth } from './auth.jsx'
 
 function Layout({ children }) {
@@ -13,7 +14,7 @@ function Layout({ children }) {
       <header className="bg-slate-800 text-white">
         <div className="mx-auto px-2 md:px-4 py-4 flex items-center justify-between w-full">
           <Link to="/" className="text-xl font-semibold">KnotBuild Co.</Link>
-          {/* Desktop nav */}
+          {/* Desktop nav (visible md and up). Active links are underlined. */}
           <nav className="hidden md:flex gap-4 text-sm items-center">
             <NavLink end to="/" className={({ isActive }) => isActive ? 'underline underline-offset-4' : 'hover:underline'}>Home</NavLink>
             <NavLink to="/services" className={({ isActive }) => isActive ? 'underline underline-offset-4' : 'hover:underline'}>Services</NavLink>
@@ -27,7 +28,7 @@ function Layout({ children }) {
               <NavLink to="/login" className={({ isActive }) => isActive ? 'underline underline-offset-4' : 'hover:underline'}>Login</NavLink>
             )}
           </nav>
-          {/* Hamburger for small screens */}
+          {/* Hamburger button for small screens */}
           <button
             className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
             aria-label="Open menu"
@@ -40,7 +41,7 @@ function Layout({ children }) {
           </button>
         </div>
       </header>
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar drawer with overlay */}
       {mobileOpen && (
         <div className="md:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={closeMobile} />
@@ -77,6 +78,22 @@ function Layout({ children }) {
 }
 
 function Home() {
+  async function handleSubmit(e) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const payload = {
+      name: fd.get('name'),
+      email: fd.get('email'),
+      details: fd.get('details'),
+    }
+    try {
+      await sendContact(payload)
+      alert('Request sent. We will contact you shortly.')
+      e.currentTarget.reset()
+    } catch (err) {
+      alert('Failed to send request')
+    }
+  }
   return (
     <div>
       <section className="bg-[url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop')] bg-cover bg-center">
@@ -111,11 +128,11 @@ function Home() {
       <section id="contact" className="bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 py-16">
           <h2 className="text-2xl md:text-3xl font-bold mb-6">Contact Us</h2>
-          <form className="grid gap-4 max-w-xl">
-            <input className="border rounded px-3 py-2" placeholder="Your Name" />
-            <input className="border rounded px-3 py-2" placeholder="Email" />
-            <textarea className="border rounded px-3 py-2" placeholder="Project details" rows="4" />
-            <button type="button" className="bg-slate-800 text-white px-4 py-2 rounded">Send</button>
+          <form onSubmit={handleSubmit} className="grid gap-4 max-w-xl">
+            <input name="name" required className="border rounded px-3 py-2" placeholder="Your Name" />
+            <input name="email" required type="email" className="border rounded px-3 py-2" placeholder="Email" />
+            <textarea name="details" required className="border rounded px-3 py-2" placeholder="Project details" rows="4" />
+            <button type="submit" className="bg-slate-800 text-white px-4 py-2 rounded">Send</button>
           </form>
         </div>
       </section>
@@ -123,20 +140,169 @@ function Home() {
   )
 }
 
+// Dummy catalog for the Services page
+const SERVICES = [
+  {
+    title: 'Residential Construction',
+    desc: 'Custom homes, renovations, and additions crafted to exact specifications.',
+    icon: '🏠',
+    price: 'From $25k',
+    features: ['Custom design', 'Energy‑efficient materials', 'Permit assistance'],
+  },
+  {
+    title: 'Commercial Build‑Outs',
+    desc: 'Fit‑outs and remodels for offices, retail, and hospitality spaces.',
+    icon: '🏢',
+    price: 'From $40k',
+    features: ['Fast‑track scheduling', 'Code compliance', 'Tenant coordination'],
+  },
+  {
+    title: 'Project Management',
+    desc: 'End‑to‑end planning, budgeting, and on‑site quality control.',
+    icon: '📋',
+    price: 'By quote',
+    features: ['Budget tracking', 'Risk mitigation', 'Weekly reporting'],
+  },
+  {
+    title: 'Structural Repairs',
+    desc: 'Foundation, framing, and reinforcement by certified specialists.',
+    icon: '🧱',
+    price: 'From $7k',
+    features: ['Engineered solutions', 'Warranty included', 'Municipal inspections'],
+  },
+  {
+    title: 'Exterior & Roofing',
+    desc: 'Roofing, siding, and facade work with durable warranties.',
+    icon: '🛠️',
+    price: 'From $5k',
+    features: ['Licensed installers', 'Storm‑resistant options', 'Maintenance plans'],
+  },
+  {
+    title: 'Green Building',
+    desc: 'Sustainable materials and methods to lower lifetime costs.',
+    icon: '🌿',
+    price: 'By quote',
+    features: ['LEED‑aligned choices', 'Solar readiness', 'Water savings'],
+  },
+]
+
 function Services() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-16">
-      <h2 className="text-3xl font-bold mb-4">Services</h2>
-      <p className="text-slate-600 max-w-3xl">We specialize in turnkey design and build, interior finishes, and sustainable construction practices.</p>
+      <div className="mb-8">
+        <h2 className="text-3xl md:text-4xl font-bold">Our Services</h2>
+        <p className="text-slate-600 mt-2 max-w-3xl">Transparent pricing, skilled crews, and on‑time delivery. Choose a package or request a custom quote tailored to your project.</p>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {SERVICES.map((s) => (
+          <div key={s.title} className="bg-white border rounded-xl shadow-sm hover:shadow-md transition overflow-hidden">
+            <div className="p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">{s.icon}</div>
+                  <h3 className="text-lg font-semibold">{s.title}</h3>
+                </div>
+                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">{s.price}</span>
+              </div>
+              <p className="text-slate-600 mt-2 text-sm">{s.desc}</p>
+              <ul className="mt-4 space-y-2">
+                {s.features.map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-slate-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-green-600">
+                      <path fillRule="evenodd" d="M2.25 12a9.75 9.75 0 1119.5 0 9.75 9.75 0 01-19.5 0zm14.28-2.28a.75.75 0 00-1.06-1.06L10.5 13.63l-1.97-1.97a.75.75 0 10-1.06 1.06l2.5 2.5a.75.75 0 001.06 0l5.5-5.5z" clipRule="evenodd" />
+                    </svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="p-5 border-t bg-slate-50">
+              <button className="w-full bg-slate-800 text-white py-2 rounded-md hover:bg-slate-700">Get quote</button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 function Contact() {
+  async function handleSubmit(e) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const payload = {
+      name: fd.get('name'),
+      email: fd.get('email'),
+      phone: fd.get('phone'),
+      details: fd.get('details'),
+    }
+    try {
+      await sendContact(payload)
+      alert('Request sent. We will contact you shortly.')
+      e.currentTarget.reset()
+    } catch (err) {
+      alert('Failed to send request')
+    }
+  }
   return (
     <div className="max-w-6xl mx-auto px-4 py-16">
-      <h2 className="text-3xl font-bold mb-4">Contact</h2>
-      <p className="text-slate-600">Reach us at contact@knotbuild.example or call +1 (555) 123‑4567.</p>
+      <div className="mb-8">
+        <h2 className="text-3xl md:text-4xl font-bold">Contact Us</h2>
+        <p className="text-slate-600 mt-2 max-w-2xl">Tell us about your project. Our team will respond within one business day.</p>
+      </div>
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white border rounded-xl shadow-sm p-6 grid gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Name</label>
+            <input name="name" required className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300" placeholder="Your name" />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input name="email" required type="email" className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300" placeholder="you@example.com" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Phone</label>
+              <input name="phone" className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300" placeholder="(555) 123‑4567" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Project details</label>
+            <textarea name="details" required rows="5" className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300" placeholder="Tell us about scope, timeline, and budget..." />
+          </div>
+          <div className="flex items-center gap-3">
+            <input id="agree" type="checkbox" className="h-4 w-4" />
+            <label htmlFor="agree" className="text-sm text-slate-600">I agree to be contacted about my request.</label>
+          </div>
+          <button type="submit" className="bg-slate-800 text-white px-4 py-2 rounded-md hover:bg-slate-700 w-fit">Send request</button>
+        </form>
+        {/* Info */}
+        <div className="grid gap-4 content-start">
+          <div className="bg-slate-50 border rounded-xl p-6">
+            <h3 className="font-semibold mb-3">Office</h3>
+            <p className="text-slate-600 text-sm">123 Build Ave, Suite 400, Your City, ST 00000</p>
+            <div className="mt-3 text-sm">
+              <div>Phone: <a className="underline" href="tel:+15551234567">+1 (555) 123‑4567</a></div>
+              <div>Email: <a className="underline" href="mailto:contact@knotbuild.example">contact@knotbuild.example</a></div>
+              <div className="mt-2 text-slate-600">Mon‑Fri: 9am‑6pm</div>
+            </div>
+          </div>
+          <div className="bg-slate-50 border rounded-xl p-6">
+            <h3 className="font-semibold mb-3">Service Areas</h3>
+            <p className="text-slate-600 text-sm">Metro region and surrounding counties. Travel beyond by request.</p>
+          </div>
+          <div className="bg-slate-100 border rounded-xl h-64 overflow-hidden">
+            <iframe
+              title="Office location"
+              className="w-full h-full"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              src="https://www.openstreetmap.org/export/embed.html?bbox=-74.02%2C40.70%2C-73.98%2C40.72&layer=mapnik&marker=40.7128%2C-74.0060"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

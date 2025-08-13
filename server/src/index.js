@@ -16,6 +16,17 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRouter)
 
+// Simple contact endpoint to accept messages from the website
+app.post('/api/contact', (req, res) => {
+  const { name, email, phone, details } = req.body || {}
+  if (!name || !email || !details) {
+    return res.status(400).json({ message: 'Name, email, and details are required' })
+  }
+  console.log(`[contact] New request from ${name} <${email}> (${phone || 'n/a'}): ${details}`)
+  // Simulate processing/sending email successfully
+  res.json({ message: 'Request received. We will contact you shortly.' })
+})
+
 app.listen(PORT, () => {
   console.log(`API running on http://localhost:${PORT}`)
 })

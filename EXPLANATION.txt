@@ -1,0 +1,57 @@
+KnotHost Case Studies - File and Function Guide
+
+This document explains what each major file does and the role of key functions/components.
+
+Root
+- .gitignore: Excludes dependencies, build artifacts, editor/OS files, and env files from git.
+- README.md: Quickstart, features, stack, and configuration notes.
+- EXPLANATION.txt: This file; detailed guide to files and functions.
+
+Client (React)
+- client/package.json: Scripts and dependencies for the React app.
+- client/index.html: HTML shell; React mounts on the element with id="root".
+- client/tailwind.config.js: Tailwind content paths to purge unused styles.
+- client/postcss.config.js: Enables tailwindcss and autoprefixer.
+- client/src/index.css: Imports Tailwind layers (base, components, utilities).
+- client/src/main.jsx: React entry; wraps the app in AuthProvider and StrictMode.
+- client/src/auth.jsx: Provides authentication context and helpers.
+  - AuthProvider: Loads token from localStorage on mount; exposes login/logout and isAuthenticated.
+  - useAuth: Hook to access authentication state and methods.
+- client/src/api.js: API helpers using axios.
+  - signUp(email, password): Calls POST /api/auth/signup.
+  - login(email, password): Calls POST /api/auth/login and returns a JWT token.
+  - forgot(email): Calls POST /api/auth/forgot (simulated email).
+  - me(token): Calls GET /api/auth/me with Authorization header.
+- client/src/App.jsx: All pages, header, routing, and responsive mobile menu.
+  - Layout: Header with desktop nav + mobile hamburger/side-drawer; shows Login/Logout based on auth.
+  - Home: Hero section, services grid, and contact form section.
+  - Services: Simple services overview page.
+  - Contact: Contact info page.
+  - Login: Submits credentials to API; on success stores token via context and navigates to Home.
+  - Signup: Creates an account (simulated email confirmation) and navigates to Login.
+  - Forgot: Sends a password reset request (simulated; prints token in server logs).
+  - ProtectedPage: Example protected content; requires authentication, otherwise redirects to Login.
+
+Server (Node + Express)
+- server/package.json: Scripts (dev/start) and dependencies for the API.
+- server/src/index.js: Express setup, middleware, and routes mounting.
+  - CORS is enabled for http://localhost:5173 and JSON body parsing is on.
+  - GET / returns a health info payload.
+  - Mounts /api/auth router.
+- server/src/routes/auth.js: In-memory authentication logic for demo purposes.
+  - POST /signup: Creates user with a bcrypt password hash; logs a simulated confirmation email.
+  - POST /login: Verifies credentials and returns a signed JWT token.
+  - POST /forgot: Logs a simulated password reset token for the user.
+  - GET /me: Validates JWT from Authorization header; returns user identity if valid.
+
+How the pieces work together
+- The client logs in using Login → api.login → receives token → AuthProvider.login saves it to localStorage and state.
+- Layout reads isAuthenticated from context; immediately shows Dashboard + Logout without refresh.
+- Protected routes use isAuthenticated and redirect to the login page when needed.
+- Server stores users only in memory; restart clears users. JWT is signed using JWT_SECRET or a default dev key.
+
+Notes
+- Tailwind provides responsiveness (e.g., md:hidden for mobile/desktop toggling).
+- NavLink underlines the active route on desktop and highlights the active item in mobile sidebar.
+
+
