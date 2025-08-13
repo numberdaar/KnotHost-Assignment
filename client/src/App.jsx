@@ -95,7 +95,7 @@ function Home() {
     }
   }
   return (
-    <div>
+      <div>
       <section className="bg-[url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop')] bg-cover bg-center">
         <div className="backdrop-brightness-50">
           <div className="max-w-6xl mx-auto px-4 py-28 text-white">
