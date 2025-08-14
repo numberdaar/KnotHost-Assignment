@@ -11,10 +11,6 @@ client/dist/
 server/dist/
 .next/
 
-# Env
-.env
-client/.env
-server/.env
 
 # OS/Editor
 .DS_Store

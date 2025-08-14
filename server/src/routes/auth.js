@@ -69,7 +69,7 @@ router.get('/me', async (req, res) => {
     const user = await User.findOne({ email: payload.sub }).lean()
     res.json({ email: payload.sub, firstName: user?.firstName, lastName: user?.lastName })
   } catch (e) {
-    res.status(401).json({ message: 'Unauthorized' })
+    res.status(401).json({ message: 'UnAuthorized' })
   }
 })
 
