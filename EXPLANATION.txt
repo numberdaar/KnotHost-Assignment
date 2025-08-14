@@ -34,15 +34,20 @@ Client (React)
 
 Server (Node + Express)
 - server/package.json: Scripts (dev/start) and dependencies for the API.
-- server/src/index.js: Express setup, middleware, and routes mounting.
+- server/src/index.js: Express setup, env loading, Mongo connection, and routes mounting.
+  - Connects to `process.env.MONGO_URI` if present; warns if not set.
   - CORS is enabled for http://localhost:5173 and JSON body parsing is on.
   - GET / returns a health info payload.
+  - POST /api/contact: Saves contact messages to MongoDB.
   - Mounts /api/auth router.
-- server/src/routes/auth.js: In-memory authentication logic for demo purposes.
-  - POST /signup: Creates user with a bcrypt password hash; logs a simulated confirmation email.
+- server/src/routes/auth.js: Authentication backed by MongoDB.
+  - POST /signup: Creates user with firstName, lastName and bcrypt password hash; simulated confirmation email log.
   - POST /login: Verifies credentials and returns a signed JWT token.
-  - POST /forgot: Logs a simulated password reset token for the user.
-  - GET /me: Validates JWT from Authorization header; returns user identity if valid.
+  - POST /forgot: Generates/saves resetToken (simulated email log).
+  - GET /me: Uses JWT to return user info from DB.
+- server/src/models/User.js: Mongoose schema for users (firstName, lastName, email, passwordHash, verified, resetToken).
+- server/src/models/Message.js: Mongoose schema for contact messages (name, email, phone, details).
+- server/ENV_SAMPLE.txt: Example environment variables.
 
 How the pieces work together
 - The client logs in using Login → api.login → receives token → AuthProvider.login saves it to localStorage and state.

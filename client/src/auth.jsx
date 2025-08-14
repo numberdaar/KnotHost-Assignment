@@ -5,16 +5,19 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
+  const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
     // Load token on first mount to keep user logged in after refresh
     const stored = localStorage.getItem('token')
     if (stored) setToken(stored)
+    setIsHydrated(true)
   }, [])
 
   const value = useMemo(() => ({
     token,
     isAuthenticated: !!token,
+    isHydrated,
     login: (newToken) => {
       // Persist token and update state
       localStorage.setItem('token', newToken)
@@ -25,7 +28,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('token')
       setToken(null)
     },
-  }), [token])
+  }), [token, isHydrated])
 
   return (
     <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

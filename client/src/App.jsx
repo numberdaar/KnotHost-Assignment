@@ -1,7 +1,7 @@
 // App pages, router, and responsive navigation
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link, NavLink, Navigate, useNavigate, useLocation } from 'react-router-dom'
-import { login as apiLogin, signUp as apiSignUp, forgot as apiForgot, sendContact } from './api'
+import { login as apiLogin, signUp as apiSignUp, forgot as apiForgot, sendContact, me as apiMe, userExists as apiUserExists, resetPassword as apiReset } from './api'
 import { useAuth } from './auth.jsx'
 
 function Layout({ children }) {
@@ -78,24 +78,9 @@ function Layout({ children }) {
 }
 
 function Home() {
-  async function handleSubmit(e) {
-    e.preventDefault()
-    const fd = new FormData(e.currentTarget)
-    const payload = {
-      name: fd.get('name'),
-      email: fd.get('email'),
-      details: fd.get('details'),
-    }
-    try {
-      await sendContact(payload)
-      alert('Request sent. We will contact you shortly.')
-      e.currentTarget.reset()
-    } catch (err) {
-      alert('Failed to send request')
-    }
-  }
+  // Home no longer has contact form
   return (
-      <div>
+    <div>
       <section className="bg-[url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop')] bg-cover bg-center">
         <div className="backdrop-brightness-50">
           <div className="max-w-6xl mx-auto px-4 py-28 text-white">
@@ -103,7 +88,7 @@ function Home() {
             <p className="max-w-2xl text-lg opacity-90">From residential to commercial, our team delivers safe, on-time, and cost-effective construction solutions.</p>
             <div className="mt-8 flex gap-3">
               <a href="#services" className="bg-amber-500 hover:bg-amber-600 text-black font-semibold px-5 py-3 rounded-md">Explore Services</a>
-              <a href="#contact" className="border border-white hover:bg-white hover:text-black font-semibold px-5 py-3 rounded-md">Get a Quote</a>
+              <Link to="/contact" className="border border-white hover:bg-white hover:text-black font-semibold px-5 py-3 rounded-md">Get a Quote</Link>
             </div>
           </div>
         </div>
@@ -125,15 +110,46 @@ function Home() {
         </div>
       </section>
 
-      <section id="contact" className="bg-slate-50">
+      <section id="about" className="bg-slate-50">
         <div className="max-w-6xl mx-auto px-4 py-16">
-          <h2 className="text-2xl md:text-3xl font-bold mb-6">Contact Us</h2>
-          <form onSubmit={handleSubmit} className="grid gap-4 max-w-xl">
-            <input name="name" required className="border rounded px-3 py-2" placeholder="Your Name" />
-            <input name="email" required type="email" className="border rounded px-3 py-2" placeholder="Email" />
-            <textarea name="details" required className="border rounded px-3 py-2" placeholder="Project details" rows="4" />
-            <button type="submit" className="bg-slate-800 text-white px-4 py-2 rounded">Send</button>
-          </form>
+          <div className="grid lg:grid-cols-2 gap-10 items-start">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold">About Us</h2>
+              <p className="text-slate-600 mt-3">KnotBuild Co. is a full‑service construction partner serving residential and commercial clients. We combine disciplined project management with skilled craftsmanship to deliver on quality, safety, and schedule.</p>
+              <ul className="mt-5 space-y-3">
+                {[
+                  '15+ years in operation across the metro area',
+                  'Licensed, insured, and safety‑first culture',
+                  'Dedicated project managers and vetted trade partners',
+                  'Transparent pricing and weekly progress updates',
+                ].map(point => (
+                  <li key={point} className="flex items-start gap-2 text-slate-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-green-600 mt-0.5">
+                      <path fillRule="evenodd" d="M2.25 12a9.75 9.75 0 1119.5 0 9.75 9.75 0 01-19.5 0zm14.28-2.28a.75.75 0 00-1.06-1.06L10.5 13.63l-1.97-1.97a.75.75 0 10-1.06 1.06l2.5 2.5a.75.75 0 001.06 0l5.5-5.5z" clipRule="evenodd" />
+                    </svg>
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="bg-white border rounded-xl p-5 text-center shadow-sm">
+                <div className="text-3xl font-bold">250+</div>
+                <div className="text-xs text-slate-500 mt-1">Projects Delivered</div>
+              </div>
+              <div className="bg-white border rounded-xl p-5 text-center shadow-sm">
+                <div className="text-3xl font-bold">98%</div>
+                <div className="text-xs text-slate-500 mt-1">On‑time Rate</div>
+              </div>
+              <div className="bg-white border rounded-xl p-5 text-center shadow-sm">
+                <div className="text-3xl font-bold">4.9★</div>
+                <div className="text-xs text-slate-500 mt-1">Client Rating</div>
+              </div>
+              <div className="bg-white border rounded-xl p-5 text-center shadow-sm sm:col-span-3">
+                <div className="text-sm text-slate-600">“They managed our timeline flawlessly and delivered exceptional quality.” — Satisfied Client</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
@@ -227,8 +243,10 @@ function Services() {
 }
 
 function Contact() {
+  const [sending, setSending] = useState(false)
   async function handleSubmit(e) {
     e.preventDefault()
+    if (sending) return
     const fd = new FormData(e.currentTarget)
     const payload = {
       name: fd.get('name'),
@@ -237,11 +255,18 @@ function Contact() {
       details: fd.get('details'),
     }
     try {
-      await sendContact(payload)
-      alert('Request sent. We will contact you shortly.')
-      e.currentTarget.reset()
+      setSending(true)
+      const res = await sendContact(payload)
+      if (res && (res.success === true)) {
+        alert(res.message || 'Request sent. We will contact you shortly.')
+        e.currentTarget.reset()
+        return
+      }
+      alert('Failed to send request')
     } catch (err) {
       alert('Failed to send request')
+    } finally {
+      setSending(false)
     }
   }
   return (
@@ -275,7 +300,7 @@ function Contact() {
             <input id="agree" type="checkbox" className="h-4 w-4" />
             <label htmlFor="agree" className="text-sm text-slate-600">I agree to be contacted about my request.</label>
           </div>
-          <button type="submit" className="bg-slate-800 text-white px-4 py-2 rounded-md hover:bg-slate-700 w-fit">Send request</button>
+          <button type="submit" disabled={sending} className={`px-4 py-2 rounded-md text-white w-fit ${sending ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}>{sending ? 'Sending...' : 'Send request'}</button>
         </form>
         {/* Info */}
         <div className="grid gap-4 content-start">
@@ -342,10 +367,12 @@ function Signup() {
   async function handleSubmit(e) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
+    const firstName = form.get('firstName')
+    const lastName = form.get('lastName')
     const email = form.get('email')
     const password = form.get('password')
     try {
-      await apiSignUp(email, password)
+      await apiSignUp(firstName, lastName, email, password)
       alert('Account created. Check email (simulated)')
       navigate('/login')
     } catch (err) {
@@ -356,6 +383,10 @@ function Signup() {
     <div className="max-w-md mx-auto px-4 py-16">
       <h2 className="text-2xl font-bold mb-6">Create account</h2>
       <form className="grid gap-4" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-2 gap-3">
+          <input name="firstName" className="border rounded px-3 py-2" placeholder="First name" />
+          <input name="lastName" className="border rounded px-3 py-2" placeholder="Last name" />
+        </div>
         <input name="email" className="border rounded px-3 py-2" placeholder="Email" />
         <input name="password" className="border rounded px-3 py-2" placeholder="Password" type="password" />
         <button className="bg-slate-800 text-white px-4 py-2 rounded">Sign up</button>
@@ -365,15 +396,26 @@ function Signup() {
 }
 
 function Forgot() {
+  const [sending, setSending] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const [presetEmail, setPresetEmail] = useState('')
   async function handleSubmit(e) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
     const email = form.get('email')
     try {
+      setSending(true)
+      const exists = await apiUserExists(email)
+      if (exists?.exists) {
+        setPresetEmail(email)
+        setShowReset(true)
+      }
       await apiForgot(email)
-      alert('If the email exists, a reset link has been sent (simulated).')
+      if (!exists?.exists) alert('If the email exists, a reset link has been sent (simulated).')
     } catch (err) {
       alert('Request failed')
+    } finally {
+      setSending(false)
     }
   }
   return (
@@ -381,19 +423,156 @@ function Forgot() {
       <h2 className="text-2xl font-bold mb-6">Forgot password</h2>
       <form className="grid gap-4" onSubmit={handleSubmit}>
         <input name="email" className="border rounded px-3 py-2" placeholder="Email" />
-        <button className="bg-slate-800 text-white px-4 py-2 rounded">Send reset</button>
+        <button disabled={sending} className={`px-4 py-2 rounded text-white ${sending ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}>{sending ? 'Checking...' : 'Send reset'}</button>
       </form>
+      {showReset && (
+        <div className="mt-8 border rounded-xl p-4 bg-slate-50">
+          <h3 className="font-semibold mb-2">Set a new password</h3>
+          <Reset presetEmail={presetEmail} />
+        </div>
+      )}
     </div>
   )
 }
 
+function Reset({ presetEmail = '' }) {
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (loading) return
+    const form = new FormData(e.currentTarget)
+    const email = form.get('email')
+    const password = form.get('password')
+    try {
+      setLoading(true)
+      const res = await apiReset(email, password)
+      if (res?.success) {
+        alert('Password reset successful. You can sign in now.')
+        navigate('/login')
+      } else {
+        alert('Reset failed')
+      }
+    } catch (err) {
+      alert('Reset failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+  return (
+    <form className="grid gap-3" onSubmit={handleSubmit}>
+      <input name="email" defaultValue={presetEmail} className="border rounded px-3 py-2" placeholder="Email" />
+      <input name="password" className="border rounded px-3 py-2" placeholder="New password" type="password" />
+      <button disabled={loading} className={`px-4 py-2 rounded text-white ${loading ? 'bg-slate-400 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'}`}>{loading ? 'Updating...' : 'Reset password'}</button>
+    </form>
+  )
+}
 function ProtectedPage() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isHydrated, token } = useAuth()
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    let isMounted = true
+    async function load() {
+      if (!token) return
+      try {
+        const data = await apiMe(token)
+        if (isMounted) setUser(data)
+      } catch (e) {
+        if (isMounted) setUser(null)
+      }
+    }
+    load()
+    return () => { isMounted = false }
+  }, [token])
+
+  if (!isHydrated) return null
   if (!isAuthenticated) return <Navigate to="/login" replace />
+
+  const recentProjects = [
+    { id: 'PRJ-1042', name: 'Lakeview Residence Remodel', status: 'In Progress', eta: 'Oct 28' },
+    { id: 'PRJ-1037', name: 'Westside Retail Fit‑Out', status: 'Inspections', eta: 'Nov 05' },
+    { id: 'PRJ-1029', name: 'Riverside Office Upgrade', status: 'Completed', eta: '—' },
+  ]
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-16">
-      <h2 className="text-3xl font-bold mb-4">Dashboard</h2>
-      <p className="text-slate-600">This protected content is visible only when signed in.</p>
+      <div className="mb-8 bg-slate-50 border rounded-xl p-6">
+        <h2 className="text-2xl font-bold mb-1">Welcome{user?.email ? `, ${user.email}` : ''}</h2>
+        <p className="text-slate-600 text-sm">Your project overview and account information.</p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="bg-white border rounded-xl p-5 shadow-sm">
+          <div className="text-xs text-slate-500">Projects Active</div>
+          <div className="text-3xl font-semibold mt-1">3</div>
+        </div>
+        <div className="bg-white border rounded-xl p-5 shadow-sm">
+          <div className="text-xs text-slate-500">Completed This Month</div>
+          <div className="text-3xl font-semibold mt-1">5</div>
+        </div>
+        <div className="bg-white border rounded-xl p-5 shadow-sm">
+          <div className="text-xs text-slate-500">New Messages</div>
+          <div className="text-3xl font-semibold mt-1">2</div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6 mt-8">
+        <div className="bg-white border rounded-xl shadow-sm lg:col-span-2">
+          <div className="p-5 border-b">
+            <h3 className="font-semibold">Recent Projects</h3>
+          </div>
+          <ul className="divide-y">
+            {recentProjects.map((p) => (
+              <li key={p.id} className="p-5 flex items-center justify-between">
+      <div>
+                  <div className="font-medium">{p.name}</div>
+                  <div className="text-xs text-slate-500">ID: {p.id}</div>
+                </div>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-700">{p.status}</span>
+                  <span className="text-slate-500">ETA: {p.eta}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="bg-white border rounded-xl shadow-sm p-5">
+          <h3 className="font-semibold mb-3">Quick Actions</h3>
+          <div className="grid gap-3">
+            <Link to="/services" className="w-full text-center bg-slate-800 text-white py-2 rounded-md hover:bg-slate-700">Explore Services</Link>
+            <Link to="/contact" className="w-full text-center border py-2 rounded-md hover:bg-slate-50">Request a Quote</Link>
+          </div>
+          <div className="mt-6 text-xs text-slate-500">Need help? Email <a className="underline" href="mailto:contact@knotbuild.example">contact@knotbuild.example</a></div>
+        </div>
+      </div>
+
+      {/* Our Services inside dashboard */}
+      <div className="mt-12">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-xl font-semibold">Our Services</h3>
+          <Link to="/services" className="text-sm underline">View all</Link>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {SERVICES.slice(0, 3).map((s) => (
+            <div key={s.title} className="bg-white border rounded-xl shadow-sm overflow-hidden">
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl">{s.icon}</div>
+                    <h4 className="font-semibold">{s.title}</h4>
+                  </div>
+                  <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">{s.price}</span>
+                </div>
+                <p className="text-slate-600 mt-2 text-sm line-clamp-2">{s.desc}</p>
+              </div>
+              <div className="p-5 border-t bg-slate-50">
+                <button className="w-full bg-slate-800 text-white py-2 rounded-md hover:bg-slate-700">Get quote</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

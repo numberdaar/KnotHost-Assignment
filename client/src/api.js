@@ -8,8 +8,8 @@ export const api = axios.create({
 })
 
 // Create a new user account
-export async function signUp(email, password) {
-  const { data } = await api.post('/auth/signup', { email, password })
+export async function signUp(firstName, lastName, email, password) {
+  const { data } = await api.post('/auth/signup', { firstName, lastName, email, password })
   return data
 }
 
@@ -25,6 +25,16 @@ export async function forgot(email) {
   return data
 }
 
+export async function userExists(email) {
+  const { data } = await api.post('/auth/check-email', { email })
+  return data
+}
+
+export async function resetPassword(email, password) {
+  const { data } = await api.post('/auth/reset', { email, password })
+  return data
+}
+
 // Fetch current user based on provided token
 export async function me(token) {
   const { data } = await api.get('/auth/me', {
@@ -36,7 +46,11 @@ export async function me(token) {
 // Send a contact request to the server
 export async function sendContact(payload) {
   const { data } = await api.post('/contact', payload)
-  return data
+  return {
+    success: Boolean(data?.success),
+    message: data?.message,
+    id: data?.id,
+  }
 }
 
 
